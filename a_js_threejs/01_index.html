@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Three.js</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #111;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            // esm.sh help you to use npm packages in the browser
+            import * as THREE from "https://esm.sh/three@0.181.0";
+            import CameraControls from "https://esm.sh/camera-controls@3.1.1";
+            CameraControls.install({ THREE });
+
+            const scene = new THREE.Scene();
+            scene.add(getLights());
+            scene.add(getGridAndAxes());
+
+            const camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 1, 15);
+
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.render(scene, camera);
+            document.body.appendChild(renderer.domElement);
+
+            const orbitControls = new CameraControls(camera, document.body);
+            const clock = new THREE.Clock();
+            function animate() {
+                requestAnimationFrame(animate); // Schedule the next frame
+                orbitControls.update(clock.getDelta()); // Update the controls based on time elapsed
+                renderer.render(scene, camera); // Render the scene from the perspective of the camera
+            }
+            animate(); // Start the animation loop
+
+
+            function y(x) {
+                return 0.4 * x * x - 2;
+            }
+
+            function y2(x) {
+                return 0.05 * x * x * x - 0.5 * x * x + x + 2;
+            }
+
+
+            // Plot and animate the points along the curve
+            function animateCurve(yFunc, color) {
+                for (let x = -30; x <= 30; x += 0.2) {
+                    const yValue = yFunc(x);
+                    setTimeout(() => {
+                        scene.add(plotPoint(x, yValue, 0, color));
+                    }, 1000 + (x * 200));
+                }
+            }
+            animateCurve(y, 0xffaa00); // Orange curve
+            animateCurve(y2, 0x00aaff); // Blue curve
+
+            // example of adding an arrow helper
+            function drawVector(from, to, color = 0xff0000) {
+                const direction = new THREE.Vector3().subVectors(to, from).normalize();
+                const length = from.distanceTo(to);
+                const arrow = new THREE.ArrowHelper(direction, from, length, color);
+                scene.add(arrow);
+            }
+            drawVector(new THREE.Vector3(0, 0, 0), new THREE.Vector3(3, 5, 8), 0x00ff00);
+            drawVector(new THREE.Vector3(0, 0, 0), new THREE.Vector3(-4, 2, 1), 0xffff00);
+            // example of drawing vector projections onto the coordinate planes
+            drawVectorProjection(new THREE.Vector3(3, 5, 8), 0xff0000);
+            drawVectorProjection(new THREE.Vector3(-4, 2, 1), 0x00ffff);
+
+
+
+            function drawVectorProjection(P, color = 0xffff00) {
+                // Projection points
+                const P_xy = new THREE.Vector3(P.x, P.y, 0);
+                const P_xz = new THREE.Vector3(P.x, 0, P.z);
+                const P_yz = new THREE.Vector3(0, P.y, P.z);
+
+                // Draw helper function (simple line)
+                const material = new THREE.LineBasicMaterial({ color });
+                function line(a, b) {
+                    const geometry = new THREE.BufferGeometry().setFromPoints([a, b]);
+                    const segment = new THREE.Line(geometry, material);
+                    scene.add(segment);
+                }
+
+                // Draw projection lines
+                line(P, P_xy);
+                line(P, P_xz);
+                line(P, P_yz);
+            }
+
+
+
+            function getLights() {
+                // Ambient light provides overall illumination
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+
+                // Directional light creates shadows and highlights
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(5, 5, 5);
+
+                // Add another light from a different angle for better edge definition
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight2.position.set(-3, -3, 2);
+
+                // add a hemisphere light for more dynamic lighting
+                const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+
+                const lightGroup = new THREE.Group();
+                lightGroup.add(
+                    ambientLight,
+                    directionalLight,
+                    directionalLight2,
+                    hemisphereLight
+                );
+                return lightGroup;
+            }
+
+            function getGridAndAxes() {
+                // GridHelper 1 - creates a grid on the XZ plane (ground)
+                const gridHelper = new THREE.GridHelper(
+                    20,        // Size of the grid. if size = 20, the grid spans 20 units across.
+                    20,        // Number of divisions. if divisions = 10, there will be 10 divisions across the grid.
+                    0x555555,  // Center line color
+                    0x333333   // Grid line color
+                );
+                gridHelper.material.opacity = 0.7;
+                gridHelper.material.transparent = true;
+
+                // GridHelper 2 - creates a grid on the XY plane (vertical)
+                const gridHelperXY = new THREE.GridHelper(
+                    20,
+                    20,
+                    0x555555,
+                    0x333333
+                );
+                gridHelperXY.rotation.x = Math.PI / 2; // Rotate to lie on XY plane
+                gridHelperXY.material.opacity = 0.7;
+                gridHelperXY.material.transparent = true;
+                
+                // AxesHelper - creates lines for the X, Y, and Z axes
+                const axesHelper = new THREE.AxesHelper(8); // Size of the axes lines
+
+                const group = new THREE.Group();
+                group.add(gridHelper, gridHelperXY, axesHelper);
+                return group;
+            }
+
+            // Function to plot points
+            function plotPoint(x, y, z = 0, color = 0xff0000, size = 0.1) {
+                // widthSegments = number of vertical slices, like longitude lines
+                // heightSegments = number of horizontal slices, like latitude lines
+                // Segments define how smooth the sphere looks
+                const geometry = new THREE.SphereGeometry(size, 20, 20);
+                const material = new THREE.MeshBasicMaterial({ color: color });
+                const point = new THREE.Mesh(geometry, material);
+                point.position.set(x, y, z);
+                return point;
+            }
+        </script>
+    </body>
+</html>

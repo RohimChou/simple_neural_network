@@ -70,3 +70,5 @@ if __name__ == "__main__":
     print(layer2_weights)
     print("layer2_bias: ")
     print(layer2_bias)
+
+    print("")
