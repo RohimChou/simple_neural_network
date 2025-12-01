@@ -19,13 +19,6 @@ if __name__ == "__main__":
         TestData([0, 0], 1)
     ]
 
-    # test_datas = [
-    #     TestData([1, 0], 1),
-    #     TestData([0, 1], 1),
-    #     TestData([1, 1], 0),
-    #     TestData([0, 0], 0)
-    # ]
-
     layer1_weights = np.random.rand(2, 2)  # 2 x 2 matrix
     layer1_bias = np.random.rand(2)
     layer2_weights = np.random.rand(2)
@@ -46,10 +39,10 @@ if __name__ == "__main__":
             layer2_weights += 0.2 * adjustment * layer1_outputs_between01
             layer2_bias += 0.2 * adjustment
 
-            diff_hidden = layer2_weights * adjustment
-            hidden_adjustment = diff_hidden * sigmoid_derivative(layer1_outputs_between01)
-            layer1_weights += 0.2 * hidden_adjustment * test_data.input_val
-            layer1_bias += 0.2 * hidden_adjustment
+            diff_layer1 = layer2_weights * adjustment
+            adjustment_layer1 = diff_layer1 * sigmoid_derivative(layer1_outputs_between01)
+            layer1_weights += 0.2 * adjustment_layer1 * test_data.input_val
+            layer1_bias += 0.2 * adjustment_layer1
 
     # predict
     print("\n\n\n\n")
